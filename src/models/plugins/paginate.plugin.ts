@@ -1,7 +1,26 @@
 /* eslint-disable no-param-reassign */
+import { Schema, Document, Model } from 'mongoose';
 
-const paginate = (schema) => {
-  /**
+export interface QueryResult {
+  results: Document[];
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalResults: number;
+}
+
+export interface IOptions {
+  sortBy?: string;
+  projectBy?: string;
+  populate?: string;
+  limit?: number;
+  page?: number;
+}
+
+
+
+
+const paginate = <T extends Document, U extends Model<U>>(schema: Schema<T>): void => {  /**
    * @typedef {Object} QueryResult
    * @property {Document[]} results - Results found
    * @property {number} page - Current page
@@ -23,8 +42,8 @@ const paginate = (schema) => {
   schema.statics.paginate = async function (filter, options, search) {
     let sort = '';
     if (options.sortBy) {
-      const sortingCriteria = [];
-      options.sortBy.split(',').forEach((sortOption) => {
+      const sortingCriteria:string[] = [];
+      options.sortBy.split(',').forEach((sortOption:string) => {
         const [key, order] = sortOption.split(':');
         sortingCriteria.push((order === 'desc' ? '-' : '') + key);
       });
@@ -51,16 +70,17 @@ const paginate = (schema) => {
       .skip(skip)
       .limit(limit);
 
-    if (options.populate) {
-      options.populate.split(',').forEach((populateOption) => {
-        docsPromise = docsPromise.populate(
-          populateOption
-            .split('.')
-            .reverse()
-            .reduce((a, b) => ({ path: b, populate: a }))
-        );
-      });
-    }
+      if (options.populate) {
+        options.populate.split(',').forEach((populateOption: any) => {
+          docsPromise = docsPromise.populate(
+            populateOption
+              .split('.')
+              .reverse()
+              .reduce((a: string, b: string) => ({ path: b, populate: a }))
+          );
+        });
+      }
+  
 
     docsPromise = docsPromise.exec();
 
@@ -79,4 +99,4 @@ const paginate = (schema) => {
   };
 };
 
-module.exports = paginate;
+export default paginate
