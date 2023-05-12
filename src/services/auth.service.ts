@@ -1,14 +1,11 @@
 import httpStatus from 'http-status';
+import mongoose from 'mongoose';
 import {tokenService} from './token.service';
 import {userService} from './user.service';
 import Token from '../models/token.model';
 import ApiError from '../utils/ApiError';
 import { tokenTypes } from '../config/tokens';
-import { IUser } from '../contracts/user.interfaces';
-
-
-
-
+import { IUserDocument, IUserWithTokens } from '../contracts/user.interfaces';
 
 /**
  * Login with username and password
@@ -16,7 +13,7 @@ import { IUser } from '../contracts/user.interfaces';
  * @param {string} password
  * @returns {Promise<User>}
  */
-export const loginUserWithEmailAndPassword = async (email: string, password: string): Promise<IUser> => {
+export const loginUserWithEmailAndPassword = async (email: string, password: string): Promise<IUserDocument> => {
   const user = await userService.getUserByEmail(email);
   if (user && user.authType !== 'email') {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Incorrect email or password');
@@ -45,10 +42,10 @@ export const logout = async (refreshToken: string): Promise<void> => {
  * @param {string} refreshToken
  * @returns {Promise<Object>}
  */
-export const refreshAuth = async (refreshToken: string) => {
+export const refreshAuth = async (refreshToken: string):Promise<IUserWithTokens> => {
   try {
     const refreshTokenDoc = await tokenService.verifyToken(refreshToken, tokenTypes.REFRESH);
-    const user = await userService.getUserById(refreshTokenDoc.user.toString())
+    const user = await userService.getUserById(new mongoose.Types.ObjectId(refreshTokenDoc.user));
     if (!user) {
       throw new Error();
     }
@@ -71,7 +68,7 @@ export const refreshAuth = async (refreshToken: string) => {
 export const resetPassword = async (resetPasswordToken: string, newPassword: string): Promise<void> => {
   try {
     const resetPasswordTokenDoc = await tokenService.verifyToken(resetPasswordToken, tokenTypes.RESET_PASSWORD);
-    const user = await userService.getUserById(resetPasswordTokenDoc.user.toString());
+    const user = await userService.getUserById(new mongoose.Types.ObjectId(resetPasswordTokenDoc.user));
     if (!user) {
       throw new ApiError(httpStatus.UNAUTHORIZED, 'Password reset failed');
     }
@@ -90,7 +87,7 @@ export const resetPassword = async (resetPasswordToken: string, newPassword: str
 export const verifyEmail = async (verifyEmailToken: string): Promise<void> => {
   try {
     const verifyEmailTokenDoc = await tokenService.verifyToken(verifyEmailToken, tokenTypes.VERIFY_EMAIL);
-    const user = await userService.getUserById(verifyEmailTokenDoc.user.toString());
+    const user = await userService.getUserById(new mongoose.Types.ObjectId(verifyEmailTokenDoc.user));
     if (!user) {
       throw new ApiError(httpStatus.UNAUTHORIZED, 'Email verification failed');
     }
